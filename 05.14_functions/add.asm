@@ -4,6 +4,23 @@
 MAINFN  LD  R6, INITSP  ; Init. the stack pointer.
         ADD R5, R6, #0  ; Init. the frame pointer.
 
+        ; Caller setup:
+        AND R0, R0, #0  ; Push "2".
+        ADD R0, R0, #2
+        ADD R6, R6, #-1
+        STR R0, R6, #0
+        ADD R0, R0, #-1 ; Push "1".
+        ADD R6, R6, #-1
+        STR R0, R6, #0
+
+        ; Call the function:
+        JSR ADDFN       ; Call "add(1, 2)".
+
+        ; Caller teardown:
+        LDR R1, R6, #0  ; Pop the return value into R1.
+        ADD R6, R6, #1
+        ADD R6, R6, #1  ; Pop "1".
+        ADD R6, R6, #1  ; Pop "2".
 
         LEA R0, STRING  ; NOTE: "printf" is really another function call, but
         PUTS            ;       it's defined in stdio, and its implementation
@@ -22,6 +39,32 @@ NEWLINE .FILL x0A
 
 
 ; int add(int, int)
-ADDFN
+ADDFN   ; Callee setup:
+        ADD R6, R6, #-1 ; Push space for the return value.
+        ADD R6, R6, #-1 ; Push the return address.
+        STR R7, R6, #0
+        ADD R6, R6, #-1 ; Push the dynamic link.
+        STR R5, R6, #0
+        ADD R5, R6, #-1 ; Set the frame pointer.
+        ADD R6, R6, #-1 ; Push space for "z".
+
+        ; NOTE: We are free to use registers R0-R4 as scratch space -- if the
+        ;       caller cared about those values, they should have been saved
+        ;       on the runtime stack.
+
+        LDR R0, R5, #4  ; Load "x" into R0.
+        LDR R1, R5, #5  ; Load "y" into R1.
+        ADD R0, R0, R1  ; Compute "x + y".
+        STR R0, R5, #0  ; Set "z = x + y".
+
+        ; Callee teardown:
+        LDR R0, R5, #0  ; Load "z" into R0.
+        STR R0, R5, #3  ; Set the return value to "z".
+        ADD R6, R6, #1  ; Pop "z".
+        LDR R5, R6, #0  ; Pop the dynamic link.
+        ADD R6, R6, #1
+        LDR R7, R6, #0  ; Pop the return address.
+        ADD R6, R6, #1
+        RET             ; Return.
 
         .END
