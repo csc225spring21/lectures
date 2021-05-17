@@ -31,6 +31,44 @@ NEWLINE .FILL x0A
 
 
 ; int sum(int)
-SUMFN
+SUMFN   ; Callee setup:
+        ADD R6, R6, #-1 ; Push space for the return value.
+        ADD R6, R6, #-1 ; Push the return address.
+        STR R7, R6, #0
+        ADD R6, R6, #-1 ; Push the dynamic link.
+        STR R5, R6, #0
+        ADD R5, R6, #-1 ; Set the frame pointer.
+                        ; NOTE: There are no locals.
+
+        LDR R0, R5, #4  ; Load "n" into R0.
+        BRp SUMELSE     ; If negative or zero...
+        AND R0, R0, #0  ; ...set the return value to "0".
+        STR R0, R5, #3
+        BRnzp SUMRET    ; Else...
+SUMELSE ; Caller setup:
+        ADD R0, R0, #-1 ; ...compute "n - 1" in R0...
+        ADD R6, R6, #-1 ; ...push "n - 1"...
+        STR R0, R6, #0
+
+        JSR SUMFN       ; ...recurse on "sum(n - 1)"...
+
+        ; Caller teardown:
+        LDR R1, R6, #0  ; ...pop the return value into R1...
+        ADD R6, R6, #1
+        ADD R6, R6, #1  ; ...pop "n - 1"...
+
+        ; NOTE: The recursive call almost certainly trashed R0.
+
+        LDR R0, R5, #4  ; ...load "n" into R0...
+        ADD R0, R0, R1  ; ...set the return value to "n + sum(n - 1)".
+        STR R0, R5, #3
+
+SUMRET  ; Callee teardown:
+                        ; NOTE: There were no locals.
+        LDR R5, R6, #0  ; Pop the dynamic link.
+        ADD R6, R6, #1
+        LDR R7, R6, #0  ; Pop the return address.
+        ADD R6, R6, #1
+        RET             ; Return.
 
         .END
