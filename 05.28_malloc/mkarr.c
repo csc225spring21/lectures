@@ -10,11 +10,15 @@ int main(void) {
     printf(" |- %p: %d\n", (void *)(&arr[0]), (arr[0]));
     printf(" +- %p: %d\n", (void *)(&arr[1]), (arr[1]));
 
+    /* To deallocate memory that was dynamically allocated on the heap: */
+    free(arr);
+
     return 0;
 }
 
 int *newArr(int n) {
-    int arr[n];
+    /* To dynamically allocate space for n integers on the heap: */
+    int *arr = (int *)malloc(sizeof(int) * n);
 
     return arr;
 }
